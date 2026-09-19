@@ -11,7 +11,12 @@ function VoiceAssistant() {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mimeTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"];
+      const mimeType = mimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      const mediaRecorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -21,7 +26,9 @@ function VoiceAssistant() {
 
       mediaRecorder.onstop = async () => {
         try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: mediaRecorder.mimeType || mimeType || "audio/webm",
+          });
           stream.getTracks().forEach((track) => track.stop());
           const replyAudio = await sendVoiceRecording(audioBlob);
           const audioUrl = URL.createObjectURL(replyAudio);

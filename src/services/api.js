@@ -46,7 +46,12 @@ export async function toggleFavoriteRequest(userId, recipe) {
 
 export async function sendVoiceRecording(audioBlob) {
   const formData = new FormData();
-  formData.append("file", audioBlob, "recording.webm" );
+  const extension = audioBlob.type.includes("mp4")
+    ? "mp4"
+    : audioBlob.type.includes("ogg")
+      ? "ogg"
+      : "webm";
+  formData.append("file", audioBlob, `recording.${extension}`);
   const response = await fetch(
     `${API_URL}/chef/voice/audio`,
     {
@@ -55,7 +60,14 @@ export async function sendVoiceRecording(audioBlob) {
     }
   );
   if (!response.ok) {
-    throw new Error("Voice request failed");
+    let detail = "Voice request failed";
+    try {
+      const data = await response.json();
+      if (data.detail) detail = data.detail;
+    } catch {
+      // Keep the generic message when the server does not return JSON.
+    }
+    throw new Error(detail);
   }
   return response.blob();
 }
